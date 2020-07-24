@@ -6,6 +6,7 @@ class Board
     attr_reader :grid
     def initialize(input = {})
         @grid = input.fetch(:grid, default_grid)
+        starting_pieces
         set_up_grid
     end
 
@@ -26,6 +27,10 @@ class Board
         get_cell(x, y).color = new_color
     end
 
+    def get_cell_color(x, y)
+        get_cell(x, y).color
+    end
+
     def set_cell_color(x, y, value)
         get_cell(x, y).color = value
     end
@@ -42,17 +47,25 @@ class Board
           puts row.map { |cell|
             if cell.piece.to_s.empty?
                 if cell.color == "blue"
-                    cell.piece = "   ".bg_blue.black
+                    "   ".bg_blue.black
                 elsif cell.color == "gray"
-                    cell.piece = "   ".bg_gray.black
+                    "   ".bg_gray.black
+                elsif cell.color == "red"
+                    "   ".bg_red.black
+                elsif cell.color == "brown"
+                    "   ".bg_brown.black
                 else 
-                    cell.piece = "   "
+                    "   "
                 end
             else
                 if cell.color == "blue"
-                    cell.piece = " #{cell.piece} ".bg_blue.black
+                    " #{cell.piece} ".bg_blue.black
                 elsif cell.color == "gray"
-                    cell.piece = " #{cell.piece} ".bg_gray.black
+                    " #{cell.piece} ".bg_gray.black
+                elsif cell.color == "red"
+                    " #{cell.piece} ".bg_red.black
+                elsif cell.color == "brown"
+                    " #{cell.piece} ".bg_brown.black
                 else
                     cell.piece
                 end
@@ -88,6 +101,280 @@ class Board
         return new_y
     end
 
+    def piece_move(start, x, y)
+        if get_cell_color(x, y) == "red"
+            set_cell(x, y, start.piece)
+            start.piece = ""
+            get_cell_piece(x, y).first_move = false
+            set_up_grid
+            formatted_grid
+        else puts "Invalid move!"
+        end
+    end
+
+    #highlights each of the pawn's potential moves in red
+    def pawn_path(x, y)
+        start_coords = get_cell(x, y)
+        start_coords.color = "brown"
+        moves = start_coords.piece.moves
+        if moves.include?([0,2])
+            moves.each do |move|
+                puts "move 1: #{move}"
+                new_coord = y
+                finish_coord = move[1]
+                i = 0
+                until i == finish_coord
+                    if start_coords.piece.color == "white"
+                        i += 1
+                        new_coord -= 1
+                    else new_coord += 1
+                        i -= 1
+                    end
+                    if get_cell(x, new_coord).piece == ""
+                        puts "empty piece?"
+                        set_cell_color(x, new_coord, "red")
+                        puts get_cell_color(x, new_coord)
+                    else
+                        puts "no empty piece?"
+                        return formatted_grid
+                    end
+                end
+            end
+        else
+            new_coord = y
+            if start_coords.piece.color == "white"
+                new_coord -= 1
+            else new_coord += 1
+            end
+            if get_cell(x, new_coord).piece == ""
+                puts "empty piece?"
+                set_cell_color(x, new_coord, "red")
+                puts get_cell_color(x, new_coord)
+            else
+                puts "no empty piece?"
+                return formatted_grid
+            end
+        end
+        formatted_grid
+    end
+
+    #highlights each of the knight's potential moves in red
+    def knight_path(x, y)
+        start_coords = get_cell(x, y)
+        start_coords.color = "brown"
+        moves = start_coords.piece.moves
+        moves.each do |move|
+            new_x = x + move[0]
+            new_y = y + move[1]
+            if new_x >= 1 && new_x <= 8 && new_y <= 7 && new_y >= 0
+                if get_cell_piece(new_x, new_y) == "" || get_cell_piece(new_x, new_y).color != start_coords.piece.color
+                    set_cell_color(new_x, new_y, "red")
+                end
+            end
+        end
+        formatted_grid
+    end
+
+    #highlights each of the king's potential moves in red
+    def king_path(x, y)
+        start_coords = get_cell(x, y)
+        start_coords.color = "brown"
+        moves = start_coords.piece.moves
+        moves.each do |move|
+            new_x = x + move[0]
+            new_y = y + move[1]
+            if new_x >= 1 && new_x <= 8 && new_y <= 7 && new_y >= 0
+                if get_cell_piece(x, new_y) == ""
+                    set_cell_color(x, new_y, "red")
+                elsif get_cell_piece(x, new_y).color != start_coords.piece.color
+                    set_cell_color(x, new_y, "red")
+                    return formatted_grid
+                end
+            end
+        end
+        formatted_grid
+    end
+
+    #highlights each of the rook's potential moves in red
+    def rook_path(x, y)
+        start_coords = get_cell(x, y)
+        start_coords.color = "brown"
+        horizontal_path_left(x, y)
+        horizontal_path_right(x, y)
+        vertical_path_down(x, y)
+        vertical_path_up(x, y)
+        formatted_grid
+    end
+
+    #highlights bishop path
+    def bishop_path(x, y)
+        start_coords = get_cell(x, y)
+        start_coords.color = "brown"
+        diagonal_path_upleft(x, y)
+        diagonal_path_upright(x, y)
+        diagonal_path_downright(x, y)
+        diagonal_path_downleft(x, y)
+        formatted_grid
+    end
+
+    #highlights queen path
+    def queen_path(x, y)
+        start_coords = get_cell(x, y)
+        start_coords.color = "brown"
+        horizontal_path_left(x, y)
+        horizontal_path_right(x, y)
+        vertical_path_down(x, y)
+        vertical_path_up(x, y)
+        diagonal_path_upleft(x, y)
+        diagonal_path_upright(x, y)
+        diagonal_path_downright(x, y)
+        diagonal_path_downleft(x, y)
+        formatted_grid
+    end
+
+    #highlights specifically vertical spots up and down from start point
+    def vertical_path_down(x, y)
+        start_coords = get_cell(x, y)
+        new_y = y
+        until new_y == 7
+            new_y += 1
+            if get_cell_piece(x, new_y) == ""
+                set_cell_color(x, new_y, "red")
+            elsif get_cell_piece(x, new_y).color != start_coords.piece.color
+                set_cell_color(x, new_y, "red")
+                return
+            else
+                return
+            end
+        end
+    end
+
+    def vertical_path_up(x, y)
+        start_coords = get_cell(x, y)
+        new_y = y
+        until new_y == 0
+            new_y -= 1
+            if get_cell_piece(x, new_y) == ""
+                set_cell_color(x, new_y, "red")
+            elsif get_cell_piece(x, new_y).color != start_coords.piece.color
+                set_cell_color(x, new_y, "red")
+                return
+            else
+                return
+            end
+        end
+    end
+
+    #highlights specifically horizontal spots up and down from start point
+    def horizontal_path_right(x, y)
+        start_coords = get_cell(x, y)
+        new_x = x
+        until new_x == 8
+            new_x += 1
+            if get_cell_piece(new_x, y) == ""
+                set_cell_color(new_x, y, "red")
+            elsif get_cell_piece(new_x, y).color != start_coords.piece.color
+                set_cell_color(new_x, y, "red")
+                return
+            else
+                return
+            end
+        end
+    end
+
+    def horizontal_path_left(x, y)
+        start_coords = get_cell(x, y)
+        new_x = x
+        until new_x == 1
+            new_x -= 1
+            if get_cell_piece(new_x, y) == ""
+                set_cell_color(new_x, y, "red")
+            elsif get_cell_piece(new_x, y).color != start_coords.piece.color
+                set_cell_color(new_x, y, "red")
+                return
+            else
+                return
+            end
+        end
+    end
+
+    #highlights specifically diagonals from start point
+    def diagonal_path_upleft(x, y)
+        start_coords = get_cell(x, y)
+        new_x = x
+        new_y = y
+        until new_x == 1 && new_y == 0
+            new_x -= 1
+            new_y -= 1
+            return if new_x < 1 || new_y < 0
+            if get_cell_piece(new_x, new_y) == ""
+                set_cell_color(new_x, new_y, "red")
+            elsif get_cell_piece(new_x, new_y).color != start_coords.piece.color
+                set_cell_color(new_x, new_y, "red")
+                return
+            else
+                return
+            end
+        end
+    end
+
+    def diagonal_path_upright(x, y)
+        start_coords = get_cell(x, y)
+        new_x = x
+        new_y = y
+        until new_x == 8 && new_y == 0
+            new_x += 1
+            new_y -= 1
+            return if new_x > 8 || new_y < 0
+            if get_cell_piece(new_x, new_y) == ""
+                set_cell_color(new_x, new_y, "red")
+            elsif get_cell_piece(new_x, new_y).color != start_coords.piece.color
+                set_cell_color(new_x, new_y, "red")
+                return
+            else
+                return
+            end
+        end
+    end
+
+    def diagonal_path_downright(x, y)
+        start_coords = get_cell(x, y)
+        new_x = x
+        new_y = y
+        until new_x == 8 && new_y == 7
+            new_x += 1
+            new_y += 1
+            return if new_x > 8 || new_y > 7
+            if get_cell_piece(new_x, new_y) == ""
+                set_cell_color(new_x, new_y, "red")
+            elsif get_cell_piece(new_x, new_y).color != start_coords.piece.color
+                set_cell_color(new_x, new_y, "red")
+                return
+            else
+                return
+            end
+        end
+    end
+
+    def diagonal_path_downleft(x, y)
+        start_coords = get_cell(x, y)
+        new_x = x
+        new_y = y
+        until new_x == 1 && new_y == 7
+            new_x -= 1
+            new_y += 1
+            return if new_x < 1 || new_y > 7
+            if get_cell_piece(new_x, new_y) == ""
+                set_cell_color(new_x, new_y, "red")
+            elsif get_cell_piece(new_x, new_y).color != start_coords.piece.color
+                set_cell_color(new_x, new_y, "red")
+                return
+            else
+                return
+            end
+        end
+    end
+
     private
 
     #creates a default 9x9 grid (1x1 is for the a-h/1-8 grid)
@@ -97,7 +384,6 @@ class Board
 
     def set_up_grid
         set_grid_colors
-        starting_pieces
         set_cell_plus_color(0, 0, " 8 ", nil)
         set_cell_plus_color(0, 1, " 7 ", nil)
         set_cell_plus_color(0, 2, " 6 ", nil)
@@ -178,11 +464,28 @@ class Board
             end
         end
     end
-
 end
 
+#testing stuff
 board = Board.new
 board.formatted_grid
+start = board.get_cell(1, 6)
+finish = board.get_cell(1, 4)
+board.pawn_path(1, 6)
+board.piece_move(board.get_cell(1, 6), 1, 4)
+board.pawn_path(5, 6)
+board.piece_move(board.get_cell(5, 6), 5, 4)
+board.pawn_path(1, 4)
+board.piece_move(board.get_cell(1, 4), 1, 3)
+#board.knight_path(2, 7)
+#board.piece_move(board.get_cell(2,7), 1, 5)
+#board.knight_path(1, 5)
+#board.king_path(5, 7)
+board.rook_path(1, 7)
+board.piece_move(board.get_cell(1,7), 1, 5)
+board.rook_path(1, 5)
+board.piece_move(board.get_cell(1,5), 4, 5)
+board.rook_path(4, 5)
 binding.pry
 
 #[0] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ]
