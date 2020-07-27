@@ -14,23 +14,7 @@ class Array
     def none_empty?
         !any_empty?
     end
-
-    #diagonals source: https://gist.github.com/EvilScott/1755729
-    def diagonals
-        [self, self.map(&:reverse)].inject([]) do |all_diags, matrix|
-          ((-matrix.count + 1)..matrix.first.count).each do |offet_index|
-            diagonal = []
-            (matrix.count).times do |row_index|
-              col_index = offet_index + row_index
-              diagonal << matrix[row_index][col_index] if col_index >= 0
-            end
-            all_diags << diagonal.compact if diagonal.compact.count > 1
-          end
-          all_diags
-        
-        end
-    end
-end
+  end
 
 class String
   def black;          "\e[30m#{self}\e[0m" end
